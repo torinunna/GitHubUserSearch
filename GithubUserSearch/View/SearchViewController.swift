@@ -12,6 +12,9 @@ class SearchViewController: UIViewController {
     
     @IBOutlet weak var collectionView: UICollectionView!
     
+    @Published private(set) var users: [SearchResult] = []
+    var subscriptions = Set<AnyCancellable>()
+    
     typealias Item = SearchResult
     var datasource: UICollectionViewDiffableDataSource<Section, Item>!
     enum Section {
@@ -23,6 +26,7 @@ class SearchViewController: UIViewController {
         
         embedSearchControl()
         configureCollectionView()
+        bind()
     }
     
     private func embedSearchControl() {
@@ -57,6 +61,18 @@ class SearchViewController: UIViewController {
         let section = NSCollectionLayoutSection(group: group)
         return UICollectionViewCompositionalLayout(section: section)
     }
+    
+    private func bind() {
+        $users
+            .receive(on: RunLoop.main)
+            .sink { users in
+                var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+                snapshot.appendSections([.main])
+                snapshot.appendItems(users, toSection: .main)
+                self.datasource.apply(snapshot)
+            }.store(in: &subscriptions)
+    }
+    
 }
 
 extension SearchViewController: UISearchResultsUpdating {
